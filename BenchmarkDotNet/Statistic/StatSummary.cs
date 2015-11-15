@@ -67,7 +67,18 @@ namespace BenchmarkDotNet.Statistic
 
         public override string ToString()
         {
-            return string.Format(EnvironmentHelper.MainCultureInfo, "Avr={0} +- {1}", Mean, ConfidenceInterval.Error);
+            return string.Format(EnvironmentHelper.MainCultureInfo, "Avr={0} +- {1} (CI 95%)", Mean, ConfidenceInterval.Error);
+        }
+
+        // TODO: improve
+        public static bool AreSimilar(StatSummary s1, StatSummary s2)
+        {
+            return AreSimilar(s1.Mean, s2.Mean, 1.02) && AreSimilar(s1.StandardDeviation, s2.StandardDeviation, 1.1);
+        }
+
+        private static bool AreSimilar(double a, double b, double percent)
+        {
+            return Math.Max(a, b) / Math.Max(1e-9, Math.Min(a, b)) < percent;
         }
     }
 }

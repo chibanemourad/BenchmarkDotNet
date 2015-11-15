@@ -8,15 +8,15 @@ namespace BenchmarkDotNet.Tasks
         public BenchmarkTask Task { get; protected set; }
 
         public BenchmarkTaskAttribute(
-            int processCount = 3,
+            int processCount = -1,
             BenchmarkMode mode = BenchmarkMode.Throughput,
             BenchmarkPlatform platform = BenchmarkPlatform.HostPlatform,
             BenchmarkJitVersion jitVersion = BenchmarkJitVersion.HostJit,
             BenchmarkFramework framework = BenchmarkFramework.HostFramework,
             BenchmarkToolchain toolchain = BenchmarkToolchain.Classic,
             BenchmarkRuntime runtime = BenchmarkRuntime.Clr,
-            int warmupIterationCount = 5,
-            int targetIterationCount = 10
+            int warmupIterationCount = -1,
+            int targetIterationCount = -1
             )
         {
             Task = new BenchmarkTask(

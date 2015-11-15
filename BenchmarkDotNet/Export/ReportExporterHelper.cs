@@ -12,11 +12,11 @@ namespace BenchmarkDotNet.Export
         {
             var reportStats = reports.Where(r => r.Runs.Count > 0)
                                      .Select(r => new
-                                        {
-                                            r.Benchmark,
-                                            Report = r,
-                                            Stat = new BenchmarkRunReportsStatistic("Target", r.Runs)
-                                        }).ToList();
+                                     {
+                                         r.Benchmark,
+                                         Report = r,
+                                         Stat = new BenchmarkRunReportsStatistic("Target", r.Runs)
+                                     }).ToList();
             if (reportStats.Count == 0)
                 return new List<string[]>();
 
@@ -26,7 +26,7 @@ namespace BenchmarkDotNet.Export
             var opsPerSecToStringFunc = GetOpsPerSecFormattingFunc();
 
             var showParams = false;
-            var headerRow = new List<string> { "Type", "Method", "Mode", "Platform", "Jit", ".NET", "toolchain", "Runtime", "Warmup", "Target" };
+            var headerRow = new List<string> { "Type", "Method", "Mode", "Platform", "Jit", ".NET", "Runtime", "Warmup", "Target" };
             if (reportStats.Any(r => !r.Benchmark.Task.ParametersSets.IsEmpty()))
             {
                 // TODO: write generic logic for multiple parameters
@@ -54,22 +54,22 @@ namespace BenchmarkDotNet.Export
                 var row = new List<string>
                 {
                     b.Target.Type.Name,
-                    b.Target.Description,
+                    b.Target.MethodTitle,
                     b.Task.Configuration.Mode.ToString(),
                     b.Task.Configuration.Platform.ToString(),
                     b.Task.Configuration.JitVersion.ToString(),
                     b.Task.Configuration.Framework.ToString(),
-                    b.Task.Configuration.Toolchain.ToString(),
                     b.Task.Configuration.Runtime.ToString(),
-                    b.Task.Configuration.WarmupIterationCount.ToString(),
-                    b.Task.Configuration.TargetIterationCount.ToString()
+                    b.Task.Configuration.WarmupIterationCount < 0 ? "Auto" : b.Task.Configuration.WarmupIterationCount.ToString(),
+                    b.Task.Configuration.TargetIterationCount < 0 ? "Auto" : b.Task.Configuration.TargetIterationCount.ToString()
                 };
 
                 if (showParams)
                     row.Add(reportStat.Report.Parameters.IntParam.ToString());
-                row.Add(timeToStringFunc(reportStat.Stat.AverageTime.Median));
-                row.Add(timeToStringFunc(reportStat.Stat.AverageTime.StandardDeviation));
-                row.Add(opsPerSecToStringFunc(reportStat.Stat.OperationsPerSeconds.Median));
+                var unmeasurable = reportStat.Report.Runs.Any(r => r.Unmeasurable);
+                row.Add(unmeasurable ? "?" : timeToStringFunc(reportStat.Stat.AverageTime.Mean));
+                row.Add(unmeasurable ? "?" : timeToStringFunc(reportStat.Stat.AverageTime.StandardDeviation));
+                row.Add(unmeasurable ? "?" : opsPerSecToStringFunc(reportStat.Stat.OperationsPerSeconds.Mean));
 
                 if (extended)
                     row.Add(timeToStringFunc(reportStat.Stat.AverageTime.StandardError));

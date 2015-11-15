@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using BenchmarkDotNet.Export;
 using BenchmarkDotNet.Logging;
 using BenchmarkDotNet.Reports;
+using BenchmarkDotNet.Statistic;
 using BenchmarkDotNet.Tasks;
 using BenchmarkDotNet.Toolchain;
 using BenchmarkDotNet.Toolchain.Results;
@@ -27,6 +29,7 @@ namespace BenchmarkDotNet
 
         internal IEnumerable<BenchmarkReport> Run(List<Benchmark> benchmarks)
         {
+            var totalStopwatch = Stopwatch.StartNew();
             Logger.WriteLineHeader("// ***** BenchmarkRunner: Start   *****");
             Logger.WriteLineInfo("// Found benchmarks:");
             foreach (var benchmark in benchmarks)
@@ -44,9 +47,17 @@ namespace BenchmarkDotNet
                     reports.Add(report);
                     if (report.Runs.Count > 0)
                     {
-                        var stat = new BenchmarkRunReportsStatistic("Target", report.Runs);
-                        Logger.WriteLineResult($"AverageTime (ns/op): {stat.AverageTime}");
-                        Logger.WriteLineResult($"OperationsPerSecond: {stat.OperationsPerSeconds}");
+                        var unmeasurable = report.Runs.Any(r => r.Unmeasurable);
+                        if (unmeasurable)
+                        {
+                            Logger.WriteLineResult("Unmeasurable");
+                        }
+                        else
+                        {
+                            var stat = new BenchmarkRunReportsStatistic("Target", report.Runs);
+                            Logger.WriteLineResult($"AverageTime (ns/op): {stat.AverageTime}");
+                            Logger.WriteLineResult($"OperationsPerSecond: {stat.OperationsPerSeconds}");
+                        }
                     }
                 }
                 else
@@ -58,14 +69,26 @@ namespace BenchmarkDotNet
                         reports.Add(report);
                         if (report.Runs.Count > 0)
                         {
-                            var stat = new BenchmarkRunReportsStatistic("Target", report.Runs);
-                            Logger.WriteLineResult($"AverageTime (ns/op): {stat.AverageTime}");
-                            Logger.WriteLineResult($"OperationsPerSecond: {stat.OperationsPerSeconds}");
+                            var unmeasurable = report.Runs.Any(r => r.Unmeasurable);
+                            if (unmeasurable)
+                            {
+                                Logger.WriteLineResult("Unmeasurable");
+                            }
+                            else
+                            {
+                                var stat = new BenchmarkRunReportsStatistic("Target", report.Runs);
+                                Logger.WriteLineResult($"AverageTime (ns/op): {stat.AverageTime}");
+                                Logger.WriteLineResult($"OperationsPerSecond: {stat.OperationsPerSeconds}");
+                            }
                         }
                     }
                 }
                 Logger.NewLine();
             }
+            totalStopwatch.Stop();
+            Logger.WriteLineInfo("Total execution time: " + totalStopwatch.Elapsed.TotalSeconds + " sec");
+
+            Logger.NewLine();
             Logger.WriteLineHeader("// ***** BenchmarkRunner: Finish  *****");
             Logger.NewLine();
 
@@ -135,12 +158,16 @@ namespace BenchmarkDotNet
         private List<BenchmarkRunReport> Exec(Benchmark benchmark, IList<string> importantPropertyNames, BenchmarkParameters parameters, IBenchmarkToolchainFacade toolchain, BenchmarkBuildResult buildResult)
         {
             Logger.WriteLineInfo("// *** Exec ***");
-            var processCount = Math.Max(1, benchmark.Task.ProcessCount);
+            bool autoMode = benchmark.Task.ProcessCount < 0;
+            var processCountStr = autoMode ? "(Auto)" : "/ " + benchmark.Task.ProcessCount;
             var runReports = new List<BenchmarkRunReport>();
 
-            for (int processNumber = 0; processNumber < processCount; processNumber++)
+            int processIndex = 0;
+            while (true)
             {
-                Logger.WriteLineInfo($"// Run, Process: {processNumber + 1} / {processCount}");
+                processIndex++;
+                var currentReports = new List<BenchmarkRunReport>();
+                Logger.WriteLineInfo($"// Run, Process: {processIndex} {processCountStr}");
                 if (parameters != null)
                     Logger.WriteLineInfo($"// {parameters.ToInfo()}");
                 if (importantPropertyNames.Any())
@@ -155,13 +182,25 @@ namespace BenchmarkDotNet
 
                 if (execResult.FoundExecutable)
                 {
+                    if (execResult.Data.Any(line => line == "!! Unmeasurable !!"))
+                        return new List<BenchmarkRunReport> { BenchmarkRunReport.CreateUnmeasurable() };
                     var iterRunReports = execResult.Data.Select(line => BenchmarkRunReport.Parse(Logger, line)).Where(r => r != null).ToList();
-                    runReports.AddRange(iterRunReports);
+                    currentReports.AddRange(iterRunReports);
                 }
                 else
                 {
                     Logger.WriteLineError("Executable not found");
                 }
+                var oldStat = runReports.Count == 0 ? null : new StatSummary(runReports.Select(r => r.AverageNanoseconds));
+                runReports.AddRange(currentReports);
+                if (autoMode && processIndex > 1)
+                {
+                    var newStat = new StatSummary(runReports.Select(r => r.AverageNanoseconds));
+                    if (StatSummary.AreSimilar(oldStat, newStat))
+                        break;
+                }
+                if (!autoMode && processIndex >= benchmark.Task.ProcessCount)
+                    break;
             }
             Logger.NewLine();
             return runReports;

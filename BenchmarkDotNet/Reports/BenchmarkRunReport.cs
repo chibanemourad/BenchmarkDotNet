@@ -28,6 +28,8 @@ namespace BenchmarkDotNet.Reports
         /// </summary>
         public double AverageNanoseconds { get; }
 
+        public bool Unmeasurable { get; }
+
         /// <summary>
         /// Creates an instance of <see cref="BenchmarkRunReport"/> class.
         /// </summary>
@@ -39,6 +41,21 @@ namespace BenchmarkDotNet.Reports
             Nanoseconds = nanoseconds;
             OpsPerSecond = operations / (nanoseconds / (1000 * 1000 * 1000)); // 1,000,000,000 ns in 1 second
             AverageNanoseconds = nanoseconds / operations;
+            Unmeasurable = false;
+        }
+
+        private BenchmarkRunReport(long operations, double nanoseconds, double opsPerSecond, double averageNanoseconds, bool unmeasurable)
+        {
+            Operations = operations;
+            Nanoseconds = nanoseconds;
+            OpsPerSecond = opsPerSecond;
+            AverageNanoseconds = averageNanoseconds;
+            Unmeasurable = unmeasurable;
+        }
+
+        public static BenchmarkRunReport CreateUnmeasurable()
+        {
+            return new BenchmarkRunReport(1, 0, double.PositiveInfinity, 0, true);
         }
 
         /// <summary>
@@ -61,11 +78,11 @@ namespace BenchmarkDotNet.Reports
                 var op = 1L;
                 var ns = double.PositiveInfinity;
                 var items = line.
-                    Split(new[] {':'}, StringSplitOptions.RemoveEmptyEntries)[1].
-                    Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+                    Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries)[1].
+                    Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var item in items)
                 {
-                    var split = item.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+                    var split = item.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     var unit = split[1];
                     switch (unit)
                     {

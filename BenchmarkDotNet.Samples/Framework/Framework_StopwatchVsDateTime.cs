@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
+using BenchmarkDotNet.Tasks;
 
 namespace BenchmarkDotNet.Samples.Framework
 {
     // This shows that not only is Stopwatch more accurate (granularity) but it's cheaper/quicker to call each time (latency)
     // Inspired by http://shipilev.net/blog/2014/nanotrusting-nanotime/#_latency and http://shipilev.net/blog/2014/nanotrusting-nanotime/#_granularity
+    [BenchmarkTask(runtime: BenchmarkRuntime.Clr)]
+    [BenchmarkTask(runtime: BenchmarkRuntime.Mono)]
     public class Framework_StopwatchVsDateTime
     {
         [Benchmark]

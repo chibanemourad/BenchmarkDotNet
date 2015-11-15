@@ -17,7 +17,7 @@ namespace BenchmarkDotNet.Samples.Introduction
             // x86: IntPtr.Size == 4
             // x64: IntPtr.Size == 8
             for (int i = 0; i < IntPtr.Size; i++)
-                Thread.Sleep(100);
+                Thread.Sleep(10);
         }
     }
 }

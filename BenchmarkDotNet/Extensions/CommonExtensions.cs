@@ -17,6 +17,16 @@ namespace BenchmarkDotNet.Extensions
             return source.Skip(Math.Max(0, source.Count - count));
         }
 
+        public static IEnumerable<T> WithoutLast<T>(this IList<T> source)
+        {
+            return source.Take(source.Count - 1);
+        }
+
+        public static T Penult<T>(this IList<T> source)
+        {
+            return source[source.Count - 2];
+        }
+
         public static int GetStrLength(this long value)
         {
             return value.ToInvariantString().Length;

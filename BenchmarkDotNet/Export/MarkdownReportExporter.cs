@@ -60,7 +60,6 @@ namespace BenchmarkDotNet.Export
                     if (areSame[colIndex] && columnsToShowIndexes.Contains(colIndex) == false)
                         logger.WriteInfo($"{table[0][colIndex]}={table[1][colIndex]}  ");
                 logger.NewLine();
-                logger.WriteLineInfo("```");
                 logger.NewLine();
             }
 

@@ -13,6 +13,7 @@ namespace BenchmarkDotNet.Tasks
         public string AdditionalLogic { get; }
         public long OperationsPerInvoke { get; }
         public string Description { get; }
+        public string MethodTitle { get; }
 
         public string Caption => Type.Name.WithoutSuffix("Competition") + "_" + Method.Name;
 
@@ -24,6 +25,7 @@ namespace BenchmarkDotNet.Tasks
             OperationsPerInvoke = method.ResolveAttribute<OperationsPerInvokeAttribute>()?.Count ?? 1;
             AdditionalLogic = additionalLogic ?? string.Empty;
             Description = description ?? Caption;
+            MethodTitle = description ?? method.Name;
         }
 
         public IEnumerable<BenchmarkProperty> Properties
@@ -31,7 +33,7 @@ namespace BenchmarkDotNet.Tasks
             get
             {
                 yield return new BenchmarkProperty(nameof(Type), Type.Name);
-                yield return new BenchmarkProperty(nameof(Method), Description);
+                yield return new BenchmarkProperty(nameof(Method), MethodTitle);
             }
         }
     }
